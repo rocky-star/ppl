@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ppl"
+dynamic = ["version"]
+description = ''
+readme = "README.md"
+requires-python = ">=3.8"
+license = "Apache-2.0"
+keywords = []
+authors = [
+  { name = "Rocky☆Star", email = "rocky-star22@outlook.com" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+  "funcparserlib",
+]
+
+[project.urls]
+Documentation = "https://github.com/rocky-star/ppl#readme"
+Issues = "https://github.com/rocky-star/ppl/issues"
+Source = "https://github.com/rocky-star/ppl"
+
+[tool.hatch.version]
+path = "ppl/__init__.py"
+
+[tool.pyright]
+pythonVersion = "3.8"
