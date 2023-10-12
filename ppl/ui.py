@@ -114,6 +114,24 @@ class UICmd(cmd.Cmd):
         super().__init__()
         self._exprs = {}
 
+    def _get_valid_name(self, letter: str, *, no_exist: bool = False) -> Symbol:
+        if letter:
+            try:
+                s = Symbol.from_letter(letter)
+            except ValueError:
+                print(f'{letter!r} 不是有效的表达式名。')
+                raise ValueError
+            if s not in self._exprs and not no_exist:
+                print(f'{s} 表达式尚未被定义。')
+                raise ValueError
+            elif no_exist and s in self._exprs:
+                print(f'{s} 表达式已被定义。')
+                raise ValueError
+            return s
+        else:
+            print('表达式名未指定。')
+            raise ValueError
+
     def do_exit(self, arg: str) -> Literal[True]:
         """退出程序。
 
@@ -132,18 +150,13 @@ class UICmd(cmd.Cmd):
 
         if arg:
             try:
-                s = Symbol.from_letter(arg)
+                s = self._get_valid_name(arg)
             except ValueError:
-                print(f'无效的表达式名 {arg!r}，名称必须为单个字母。')
                 return
-            if s in self._exprs:
-                print(f'{s}: {_format_expr(self._exprs[s], unicode=unicode)}')
-            else:
-                print(f'表达式 {s} 不存在。')
-            return
-
-        for symbol, expr in self._exprs.items():
-            print(f'{symbol}\t{_format_expr(expr, unicode=unicode)}')
+            print(f'{s}: {_format_expr(self._exprs[s], unicode=unicode)}')
+        else:
+            for symbol, expr in self._exprs.items():
+                print(f'{symbol}: {_format_expr(expr, unicode=unicode)}')
 
     def do_listu(self, arg: str) -> None:
         """以 Unicode 字符列出所有已添加的表达式，或指定的表达式。另见 list 命令。"""
@@ -152,12 +165,8 @@ class UICmd(cmd.Cmd):
     def do_new(self, arg: str) -> None:
         """添加新表达式。\n\nnew 表达式名"""
         try:
-            expr_name = Symbol.from_letter(arg)
+            expr_name = self._get_valid_name(arg, no_exist=True)
         except ValueError:
-            print(f'无效的表达式名 {arg!r}，表达式必须为单个字母。')
-            return
-        if expr_name in self._exprs:
-            print('存在同名的表达式。')
             return
 
         try:
@@ -173,31 +182,42 @@ class UICmd(cmd.Cmd):
     def do_del(self, arg: str) -> None:
         """删除已有的表达式。\n\ndel 表达式名"""
         try:
-            s = Symbol.from_letter(arg)
+            s = self._get_valid_name(arg)
         except ValueError:
-            print(f'无效的表达式名 {arg!r}，名称必须为单个字母。')
             return
-        if s in self._exprs:
-            self._exprs.pop(s)
-        else:
-            print(f'表达式 {s} 不存在。')
+        self._exprs.pop(s)
 
     def do_tt(self, arg: str, *, unicode: bool = False) -> None:
         """打印表达式的真值表。\n\ntt 表达式名"""
         try:
-            s = Symbol.from_letter(arg)
+            s = self._get_valid_name(arg)
         except ValueError:
-            print(f'无效的表达式名 {arg!r}，名称必须为单个字母。')
             return
-        if s in self._exprs:
-            tt = TruthTable.from_expr(self._exprs[s])
-            if tt.variables:
-                print(_format_tt(tt, _format_expr(self._exprs[s], unicode=unicode), unicode=unicode), end='')
-            else:
-                print('给定的表达式没有变量。')
+        tt = TruthTable.from_expr(self._exprs[s])
+        if tt.variables:
+            print(_format_tt(tt, _format_expr(self._exprs[s], unicode=unicode), unicode=unicode), end='')
         else:
-            print(f'表达式 {s} 不存在。')
+            print('给定的表达式没有变量。')
 
     def do_ttu(self, arg: str) -> None:
         """以 Unicode 字符打印真值表。另见 tt 命令。"""
         self.do_tt(arg, unicode=True)
+
+    def do_eval(self, arg: str) -> None:
+        """以给定解释对表达式求值。\n\neval 表达式名"""
+        try:
+            expr_name = self._get_valid_name(arg)
+        except ValueError:
+            return
+        expr = self._exprs[expr_name]
+        variables = list(get_variables(expr))
+        variables.sort()
+        if not variables:
+            print('给定表达式不包含任何变量。')
+            return
+
+        interpt = {}
+        print('分别为每个变量指定值。')
+        for var_name in variables:
+            interpt[var_name] = bool(int(input(f'{var_name} = ')))
+        print(f'值是 {int(evaluate(expr, interpt))}。')
